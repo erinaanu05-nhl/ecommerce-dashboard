@@ -8,24 +8,28 @@ const NAV_ITEMS = [
   { id: "settings", label: "Settings" }, 
 ];
 
-export default function Sidebar({ activePage, onNavigate, onGenerate, theme }) {
+export default function Sidebar({ activePage, onNavigate, onGenerate, theme, showAdminTools }) {
   const [hoveredItem, setHoveredItem] = useState(null);
   const [btnHover, setBtnHover] = useState(false);
 
   if (!theme) return null;
 
-  // --- DIAGNOSTIC LOG ---
-  // When the sidebar loads, check your console (F12). 
-  // It should say "onGenerate is a function". 
-  // If it says "onGenerate is undefined", the error is in App.jsx.
-  console.log("Sidebar Rendered. onGenerate type:", typeof onGenerate);
+  // --- THE FILTER ---
+  // We explicitly filter out "settings" if showAdminTools is not true
+  const visibleNavItems = NAV_ITEMS.filter((item) => {
+    if (item.id === "settings") {
+      return showAdminTools === true; // Only show if explicitly true
+    }
+    return true; // Show everything else (overview, orders, etc.)
+  });
 
   return (
     <div style={{...sidebarContainerStyle, backgroundColor: theme.bg, borderRight: `1px solid ${theme.border}`}}>
       <div style={{ flex: 1 }}>
         <h2 style={{...logoStyle, color: theme.text}}>E-Dash</h2>
         <nav>
-          {NAV_ITEMS.map((item) => (
+          {/* CRITICAL: Use visibleNavItems here, NOT NAV_ITEMS */}
+          {visibleNavItems.map((item) => (
             <div
               key={item.id}
               onClick={() => onNavigate(item.id)}
@@ -49,11 +53,7 @@ export default function Sidebar({ activePage, onNavigate, onGenerate, theme }) {
 
       <div style={{...footerStyle, borderTop: `1px solid ${theme.border}`}}>
         <button 
-          onClick={() => {
-            console.log("Button physically clicked!");
-            if (onGenerate) onGenerate();
-            else console.error("onGenerate is missing!");
-          }}
+          onClick={() => onGenerate && onGenerate()}
           onMouseEnter={() => setBtnHover(true)}
           onMouseLeave={() => setBtnHover(false)}
           style={{
@@ -70,8 +70,7 @@ export default function Sidebar({ activePage, onNavigate, onGenerate, theme }) {
   );
 }
 
-// ... Styles stay exactly the same ...
-const sidebarContainerStyle = { width: "240px", minHeight: "100vh", padding: "24px 16px", display: "flex", flexDirection: "column", transition: "all 0.3s ease" };
+const sidebarContainerStyle = { width: "240px", minHeight: "100vh", padding: "24px 16px", display: "flex", flexDirection: "column" };
 const logoStyle = { marginBottom: "32px", fontSize: "14px", fontWeight: "bold", letterSpacing: "1px", paddingLeft: "12px", textTransform: "uppercase" };
 const navItemStyle = { padding: "10px 12px", cursor: "pointer", borderRadius: "6px", marginBottom: "4px", transition: "all 0.2s ease", fontSize: "14px", fontWeight: "500" };
 const footerStyle = { paddingTop: "20px" };
