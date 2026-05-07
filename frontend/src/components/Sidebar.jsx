@@ -8,19 +8,43 @@ const NAV_ITEMS = [
   { id: "settings", label: "Settings" }, 
 ];
 
-export default function Sidebar({ activePage, onNavigate, onGenerate, theme, showAdminTools }) {
+export default function Sidebar({ activePage, onNavigate, theme, showAdminTools }) {
   const [hoveredItem, setHoveredItem] = useState(null);
   const [btnHover, setBtnHover] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   if (!theme) return null;
 
-  // --- THE FILTER ---
-  // We explicitly filter out "settings" if showAdminTools is not true
+  // --- THE SYNC LOGIC ---
+  const handleGenerateData = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch('http://localhost:3000/api/v1/system/sync', {
+        method: 'POST', // Backend requires POST
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Sync Success:", result);
+        // Refresh the page to show the new data on the dashboard
+        window.location.reload(); 
+      } else {
+        alert("Server error during sync.");
+      }
+    } catch (error) {
+      console.error("Connection Error:", error);
+      alert("Cannot reach backend. Is it running on port 3000?");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const visibleNavItems = NAV_ITEMS.filter((item) => {
     if (item.id === "settings") {
-      return showAdminTools === true; // Only show if explicitly true
+      return showAdminTools === true;
     }
-    return true; // Show everything else (overview, orders, etc.)
+    return true;
   });
 
   return (
@@ -28,7 +52,6 @@ export default function Sidebar({ activePage, onNavigate, onGenerate, theme, sho
       <div style={{ flex: 1 }}>
         <h2 style={{...logoStyle, color: theme.text}}>E-Dash</h2>
         <nav>
-          {/* CRITICAL: Use visibleNavItems here, NOT NAV_ITEMS */}
           {visibleNavItems.map((item) => (
             <div
               key={item.id}
@@ -53,17 +76,20 @@ export default function Sidebar({ activePage, onNavigate, onGenerate, theme, sho
 
       <div style={{...footerStyle, borderTop: `1px solid ${theme.border}`}}>
         <button 
-          onClick={() => onGenerate && onGenerate()}
+          onClick={handleGenerateData} // Trigger the backend sync
           onMouseEnter={() => setBtnHover(true)}
           onMouseLeave={() => setBtnHover(false)}
+          disabled={isSyncing}
           style={{
             ...generateButtonStyle,
-            borderColor: theme.accent,
-            color: theme.accent,
+            borderColor: isSyncing ? theme.subtext : theme.accent,
+            color: isSyncing ? theme.subtext : theme.accent,
             backgroundColor: btnHover ? "rgba(35, 134, 54, 0.1)" : "transparent",
+            cursor: isSyncing ? "not-allowed" : "pointer",
+            opacity: isSyncing ? 0.6 : 1
           }}
         >
-          Generate Data
+          {isSyncing ? "Syncing..." : "Generate Data"}
         </button>
       </div>
     </div>
@@ -74,4 +100,4 @@ const sidebarContainerStyle = { width: "240px", minHeight: "100vh", padding: "24
 const logoStyle = { marginBottom: "32px", fontSize: "14px", fontWeight: "bold", letterSpacing: "1px", paddingLeft: "12px", textTransform: "uppercase" };
 const navItemStyle = { padding: "10px 12px", cursor: "pointer", borderRadius: "6px", marginBottom: "4px", transition: "all 0.2s ease", fontSize: "14px", fontWeight: "500" };
 const footerStyle = { paddingTop: "20px" };
-const generateButtonStyle = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid", fontSize: "12px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s ease", textTransform: "uppercase" };
+const generateButtonStyle = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid", fontSize: "12px", fontWeight: "600", transition: "all 0.2s ease", textTransform: "uppercase" };
